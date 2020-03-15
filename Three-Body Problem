@@ -1,0 +1,194 @@
+#!/usr/bin/python
+import numpy as np
+from matplotlib import pylab
+from pylab import *
+
+###############################################################################
+N = 100000
+G = 1
+t = linspace(0,1,N)
+dt = t[1] - t[0]
+
+###############################################################################
+# functions
+
+def Force(mass1, mass2, mass3, radius1, radius2, coord1, coord2, coord3):
+    return (G * mass1 * mass2)/(radius1**2) * (coord2 - coord1)/(radius1) + (G * mass1 * mass3)/(radius2**2) * (coord3 - coord1)/(radius2)
+
+def Energy(mass1, mass2, mass3, xvelocity, yvelocity, radius1, radius2):
+    return (1/2) * mass1 * (xvelocity**2 + yvelocity**2) + (-G * mass1 * mass2)/radius1 + (-G * mass1 * mass3)/radius2
+
+def radius(coord1x, coord1y, coord2x, coord2y):
+    return ((coord2y - coord1y)**2 + (coord2x - coord1x)**2)**(1/2)
+
+def integrate(F1, F2, F3, m1, m2, m3, x10, y10, vx10, vy10, x20, y20, vx20, vy20, x30, y30, vx30, vy30, E1, E2, E3):
+###########################################################################
+# arrays are allocated and filled with zeros
+
+    r12 = zeros(N)
+    r23 = zeros(N)
+    r13 = zeros(N)
+
+    x1 = zeros(N)
+    y1 = zeros(N)
+
+    x2 = zeros(N)
+    y2 = zeros(N)
+
+    x3 = zeros(N)
+    y3 = zeros(N)
+
+    vx1 = zeros(N)
+    vx2 = zeros(N)
+    vx3 = zeros(N)
+
+    vy1 = zeros(N)
+    vy2 = zeros(N)
+    vy3 = zeros(N)
+
+    E1 = zeros(N)
+    E2 = zeros(N)
+    E3 = zeros(N)
+###########################################################################
+# initial conditions
+
+    x1[0] = x10
+    y1[0] = y10
+
+    x2[0] = x20
+    y2[0] = y20
+
+    x3[0] = x30
+    y3[0] = y30
+
+    r12[0] = radius(x1[0], y1[0], x2[0], y2[0])
+    r23[0] = radius(x2[0], y2[0], x3[0], y3[0])
+    r13[0] = radius(x1[0], y1[0], x3[0], y3[0])
+
+    vx1[0] = vx10
+    vy1[0] = vy10
+
+    vx2[0] = vx20
+    vy2[0] = vy20
+
+    vx3[0] = vx30
+    vy3[0] = vy30
+
+    E1[0] = Energy(m1, m2, m3, vx1[0], vy1[0], r12[0], r13[0])
+    E2[0] = Energy(m2, m1, m3, vx2[0], vy2[0], r12[0], r23[0])
+    E3[0] = Energy(m3, m1, m2, vx3[0], vy3[0], r13[0], r23[0])
+
+###########################################################################
+# integration
+
+    for i in range(N-1):
+
+         r12[i] = radius(x1[i], y1[i], x2[i], y2[i])
+         r23[i] = radius(x2[i], y2[i], x3[i], y3[i])
+         r13[i] = radius(x1[i], y1[i], x3[i], y3[i])
+
+         x1half = vx1[i] * (dt/2) + x1[i]
+         y1half = vy1[i] * (dt/2) + y1[i]
+
+         x2half = vx2[i] * (dt/2) + x2[i]
+         y2half = vy2[i] * (dt/2) + y2[i]
+
+         x3half = vx3[i] * (dt/2) + x3[i]
+         y3half = vy3[i] * (dt/2) + y3[i]
+
+         rhalf12 = radius(x1half, y1half, x2half, y2half)
+         rhalf23 = radius(x2half, y2half, x3half, y3half)
+         rhalf13 = radius(x1half, y1half, x3half, y3half)
+
+         vx1[i+1] = vx1[i] + dt * Force(m1, m2, m3, rhalf12, rhalf13, x1half, x2half, x3half)/m1
+         vx2[i+1] = vx2[i] + dt * Force(m2, m1, m3, rhalf12, rhalf23, x2half, x1half, x3half)/m2
+         vx3[i+1] = vx3[i] + dt * Force(m3, m1, m2, rhalf13, rhalf23, x3half, x1half, x2half)/m3
+
+         vy1[i+1] = vy1[i] + dt * Force(m1, m2, m3, rhalf12, rhalf13, y1half, y2half, y3half)/m1
+         vy2[i+1] = vy2[i] + dt * Force(m2, m1, m3, rhalf12, rhalf23, y2half, y1half, y3half)/m2
+         vy3[i+1] = vy3[i] + dt * Force(m3, m1, m2, rhalf13, rhalf23, y3half, y1half, y2half)/m3
+
+         x1[i+1] = x1half + dt/2 * vx1[i+1]
+         y1[i+1] = y1half + dt/2 * vy1[i+1]
+
+         x2[i+1] = x2half + dt/2 * vx2[i+1]
+         y2[i+1] = y2half + dt/2 * vy2[i+1]
+
+         x3[i+1] = x3half + dt/2 * vx3[i+1]
+         y3[i+1] = y3half + dt/2 * vy3[i+1]
+
+         r12[i+1] = radius(x1[i+1], y1[i+1], x2[i+1], y2[i+1])
+         r23[i+1] = radius(x2[i+1], y2[i+1], x3[i+1], y3[i+1])
+         r13[i+1] = radius(x1[i+1], y1[i+1], x3[i+1], y3[i+1])
+
+         E1[i+1] += Energy(m1, m2, m3, vx1[i+1], vy1[i+1], r12[i+1], r13[i+1])
+         E2[i+1] += Energy(m2, m1, m3, vx2[i+1], vy2[i+1], r12[i+1], r23[i+1])
+         E3[i+1] += Energy(m3, m1, m2, vx3[i+1], vy3[i+1], r13[i+1], r23[i+1])
+
+    #E1[-1] = Energy(m1, m2, m3, vx1[-1], vy1[-1], r12[-1], r13[-1])
+    #E2[-1] = Energy(m2, m1, m3, vx2[-1], vy2[-1], r12[-1], r23[-1])
+    #E3[-1] = Energy(m3, m1, m2, vx3[-1], vy3[-1], r13[-1], r23[-1])
+
+    # return solution
+    return F1, F2, F3, m1, m2, m3, x1, y1, vx1, vy1, x2, y2, vx2, vy2, x3, y3, vx3, vy3, E1, E2, E3
+###############################################################################
+# numerical integration
+
+F1 = zeros(N)
+F2 = zeros(N)
+F3 = zeros(N)
+
+E1 = zeros(N)
+E2 = zeros(N)
+E3 = zeros(N)
+
+m1 = .1
+x10 = -.1
+y10 = 0
+vx10 = 0
+vy10 = 0
+
+m2 = .1
+x20 = 0
+y20 = 0
+vx20 = 0
+vy20 = 0
+
+m3 = .1
+x30 = .1
+y30 = .1
+vx30 = 0
+vy30 = 0
+
+F1, F2, F3, m1, m2, m3, x1, y1, vx1, vy1, x2, y2, vx2, vy2, x3, y3, vx3, vy3, E1, E2, E3 = integrate(F1, F2, F3, m1, m2, m3, x10, y10, vx10, vy10, x20, y20, vx20, vy20, x30, y30, vx30, vy30, E1, E2, E3)
+
+###############################################################################
+# plotting
+
+
+rcParams["axes.grid"] = True
+rcParams['font.size'] = 14
+rcParams['axes.labelsize'] = 18
+
+figure()
+plot(x1,y1)
+plot(x2,y2)
+plot(x3,y3)
+ylabel("y")
+xlabel("x")
+
+figure()
+plot(t,E1)
+plot(t,E2)
+plot(t,E3)
+ylabel("Energy (J)")
+xlabel("Time (Sec)")
+
+
+tight_layout()
+
+###############################################################################
+
+show()
+
+###############################################################################
