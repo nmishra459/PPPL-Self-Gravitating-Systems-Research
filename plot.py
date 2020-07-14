@@ -7,7 +7,7 @@ import subprocess
 
 num_bodies = 30
 
-subprocess.call(["gcc", "N-Body Computation.c"]) ##compiles C code (integration)
+subprocess.call(["gcc", "integrate.c"]) ##compiles C code (integration)
 
 print("Integration Code (C) Compilation: Success\n");
 
