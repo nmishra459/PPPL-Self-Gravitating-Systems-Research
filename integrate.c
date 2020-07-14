@@ -2,416 +2,470 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
+#define PI 3.14159265
 
-double G = 1.00;
+double G = 1;
 
-double Force(double mass1, double mass2, double mass3, double radius1, double radius2, double coord1, double coord2, double coord3) {
-    double first_term = (G * mass1 * mass2) / (pow(radius1,2)) * (coord2 - coord1) / (radius1);
-    double second_term = (G * mass1 * mass3) / pow(radius2,2) * (coord3 - coord1) / (radius2);
-    return (first_term + second_term);
+double drand (double low, double high)
+{
+    return ((double)rand() * (high - low)) / (double)RAND_MAX + low;
 }
 
-double Energy(double mass1, double mass2, double mass3, double xvelocity, double yvelocity, double zvelocity, double radius1, double radius2) {
-    double first_term = (1.00 / 2.00) * mass1 * (pow(xvelocity,2) + pow(yvelocity,2) + pow(zvelocity,2));
-    double second_term = ((-G * mass1 * mass2) / radius1);
-    double third_term = ((-G * mass1 * mass3) / radius2);
-    return first_term + second_term + third_term;
+double force(double mass, int index, int num_bodies, double* radii, double* masses, double* coord) 
+{
+    double net_Force = 0;
+
+    int z = 0;
+    for (int a = 1; a <= num_bodies; a++)
+    {   
+        for (int b = a + 1; b <= num_bodies; b++)
+        {
+
+            if (a == index + 1)
+            {
+                net_Force += (-G * mass * masses[b-1])/pow(radii[z],2) * (coord[a-1]-coord[b-1])/(radii[z]);
+            }
+
+            if (b == index + 1)
+            {
+                net_Force += (-G * mass * masses[a-1])/pow(radii[z],2) * (coord[b-1]-coord[a-1])/(radii[z]);
+            }
+
+            z++;
+        }
+    }
+    return net_Force;
 }
 
-double radius(double coord1x, double coord1y, double coord1z, double coord2x, double coord2y, double coord2z) {
-    double first_term = pow((coord2x - coord1x),2);
-    double second_term = pow((coord2y - coord1y),2);
-    double third_term = pow((coord2z - coord1z),2);
+double energy(double mass,       int index,         int num_bodies, 
+              double x_velocity, double y_velocity, double z_velocity, 
+              double* masses,    double* radii) 
+{
+    double kinetic_energy = (1.00 / 2.00) * mass * (pow(x_velocity,2) + pow(y_velocity,2) + pow(z_velocity,2));
+    double potential_energy = 0;
+
+    int c = 0;
+    for (int d = 1; d <= num_bodies; d++)
+    {   
+        for (int e = d + 1; e <= num_bodies; e++)
+        {
+            
+            if (d == index + 1 || e == index + 1)
+            {
+                potential_energy += (-G * masses[d-1] * masses[e-1])/radii[c];
+            }
+            c++;
+        }
+    }
+    return (kinetic_energy + potential_energy);
+}
+
+double radius(double coord1x, double coord1y, double coord1z, double coord2x, double coord2y, double coord2z)
+{
+    double first_term = pow((coord2x - coord1x), 2);
+    double second_term = pow((coord2y - coord1y), 2);
+    double third_term = pow((coord2z - coord1z), 2);
+
     double final_term = pow((first_term + second_term + third_term), (1.00/2.00));
+    
     return final_term; 
 } 
 
-int integrate(double m1, double m2, double m3, double x10, double y10, double z10, double vx10, double vy10, double vz10, double x20, double y20, double z20, double vx20, double vy20, double vz20, double x30, double y30, double z30, double vx30, double vy30, double vz30) {
+//CHEKCS IF EXCEED LIM CONDITION IS MET - 1 is limit is exceeded, 0 if not
+int exceedLim(double* x_A_array, double* y_A_array, double* z_A_array, 
+              double* x_array,   double* y_array,   double* z_array, 
+              int num_bodies,    double lim,        int max_min)
+{
+    double x_diff, y_diff, z_diff;
 
-    double r12, r23, r13, x1, y1, z1, x2, y2, z2, x3, y3, z3, vx1, vy1, vz1, vx2, vy2, vz2, vx3, vy3, vz3, E1, E2, E3, ET, time;
+    if (max_min == 1)
+    {
+        for (int v = 0; v < num_bodies; v++)
+        {
+            x_diff = fabs(x_A_array[v] - x_array[v]);
+            y_diff = fabs(y_A_array[v] - y_array[v]);
+            z_diff = fabs(z_A_array[v] - z_array[v]);
 
-    //File: Write
-    FILE* x1FILE = fopen("x1.txt", "w");
-    FILE* y1FILE = fopen("y1.txt", "w");
-    FILE* z1FILE = fopen("z1.txt", "w");
+            if (x_diff > lim || y_diff > lim || z_diff > lim)
+            {
+                return 1;
+            }
+        }
+        return 0;
+    }
 
-    FILE* x2FILE = fopen("x2.txt", "w");
-    FILE* y2FILE = fopen("y2.txt", "w");
-    FILE* z2FILE = fopen("z2.txt", "w");
+    else 
+    {
+        for (int y = 0; y < num_bodies; y++)
+        {
+            x_diff = fabs(x_A_array[y] - x_array[y]);
+            y_diff = fabs(y_A_array[y] - y_array[y]);
+            z_diff = fabs(z_A_array[y] - z_array[y]);
 
-    FILE* x3FILE = fopen("x3.txt", "w");
-    FILE* y3FILE = fopen("y3.txt", "w");
-    FILE* z3FILE = fopen("z3.txt", "w");
+            if (x_diff > lim || y_diff > lim || z_diff > lim)
+            {
+                return 0;
+            }
+        }
+        return 1;
+    }
+}
 
-    FILE* E1FILE = fopen("E1.txt", "w");
-    FILE* E2FILE = fopen("E2.txt", "w");
-    FILE* E3FILE = fopen("E3.txt", "w");
+int integrate(double time_elapsed, double dt, int num_bodies, double min_lim, double max_lim, int skip_save, 
+              double* masses, double* init_x_pos, double* init_y_pos, double* init_z_pos, double* init_x_veloc, 
+              double* init_y_veloc, double* init_z_veloc) 
+{
+
+    int num_radii = (num_bodies * (num_bodies-1))/2;
+
+    //PHYSICAL PARAMTER INITIATION
+    double x_pos[num_bodies];
+    double y_pos[num_bodies];
+    double z_pos[num_bodies];
+
+    double x_veloc[num_bodies];
+    double y_veloc[num_bodies];
+    double z_veloc[num_bodies];
+
+    double energies[num_bodies];
+
+    double radii[num_radii];
+    double ET = 0; 
+    double time = 0;
+
+    //FILE POINTER ARRAY INITILIAZATION
+    FILE* write_x[num_bodies];
+    FILE* write_y[num_bodies];
+    FILE* write_z[num_bodies];
+
+    FILE* append_x[num_bodies];
+    FILE* append_y[num_bodies];
+    FILE* append_z[num_bodies];
+
+    FILE* write_E[num_bodies];
+    FILE* append_E[num_bodies];
+
+    int fileCount;
+
+    //STRING ARRAY INITIALIZITION
+    char x_string[50];
+    char y_string[50];
+    char z_string[50];
+    char E_string[50];
+
+    char hold[50];
+
+    //printf("Before: %d\n", num_bodies);
+
+    //STRING GENERATOR + FILE POINTER ALLOCATION
+    for (int w = 0; w < num_bodies; w++)
+    {
+        fileCount = w+1;
+
+        itoa(fileCount, hold, 2); 
+
+        sprintf(x_string, "x%d.txt", fileCount);
+        sprintf(y_string, "y%d.txt", fileCount);
+        sprintf(z_string, "z%d.txt", fileCount);
+
+        sprintf(E_string, "E%d.txt", fileCount);
+
+        write_x[w] = fopen(x_string, "w");
+        write_y[w] = fopen(y_string, "w");
+        write_z[w] = fopen(z_string, "w");
+
+        write_E[w] = fopen(E_string, "w");
+
+        append_x[w] = fopen(x_string, "a");
+        append_y[w] = fopen(y_string, "a");
+        append_z[w] = fopen(z_string, "a");
+
+        append_E[w] = fopen(E_string, "a");
+    }
+
     FILE* ETFILE = fopen("ET.txt", "w");
-
     FILE* timeFILE = fopen("time.txt", "w");
 
-    //File: Append
-    FILE* x1FILEA = fopen("x1.txt", "a");
-    FILE* y1FILEA = fopen("y1.txt", "a");
-    FILE* z1FILEA = fopen("z1.txt", "a");
-
-    FILE* x2FILEA = fopen("x2.txt", "a");
-    FILE* y2FILEA = fopen("y2.txt", "a");
-    FILE* z2FILEA = fopen("z2.txt", "a");
-
-    FILE* x3FILEA = fopen("x3.txt", "a");
-    FILE* y3FILEA = fopen("y3.txt", "a");
-    FILE* z3FILEA = fopen("z3.txt", "a");
-
-    FILE* E1FILEA = fopen("E1.txt", "a");
-    FILE* E2FILEA = fopen("E2.txt", "a");
-    FILE* E3FILEA = fopen("E3.txt", "a");
     FILE* ETFILEA = fopen("ET.txt", "a");
-
     FILE* timeFILEA = fopen("time.txt", "a");
 
-    x1 = x10;
-    y1 = y10;
-    z1 = z10;
+    //INITIAL PARAMETER ASSIGNMENT/FILE SAVING
+    for (int f = 0; f < num_bodies; f++)
+    {
+        x_pos[f] = init_x_pos[f];
+        y_pos[f] = init_y_pos[f];
+        z_pos[f] = init_z_pos[f];
+        
+        fprintf(write_x[f], "%Lf\n", x_pos[f]);
+        fprintf(write_y[f], "%Lf\n", y_pos[f]);
+        fprintf(write_z[f], "%Lf\n", z_pos[f]);
 
-    x2 = x20;
-    y2 = y20;
-    z2 = z20;
+        fclose(write_x[f]);
+        fclose(write_y[f]);
+        fclose(write_z[f]);
+        
+        x_veloc[f] = init_x_veloc[f];
+        y_veloc[f] = init_y_veloc[f];
+        z_veloc[f] = init_z_veloc[f];
+    }
 
-    x3 = x30;
-    y3 = y30;
-    z3 = z30;
+    //INITIAL RADII ARRAY ASSIGNMENT
+    int count = 0; 
+    int starter = 1;
+    for (int g = 0; g < num_bodies; g++) 
+    {          
+        for (int h = starter; h < num_bodies; h++) 
+        {
 
-    r12 = radius(x1, y1, z1, x2, y2, z2);
-    r23 = radius(x2, y2, z2, x3, y3, z3);
-    r13 = radius(x1, y1, z1, x3, y3, z3);
+            radii[count] = radius(x_pos[g], y_pos[g], z_pos[g], x_pos[h], y_pos[h], z_pos[h]);
+            count++;
+        }
+        starter++;
+    }
+    count = 0;
+  
+    //INITIAL ENERGY ARRAY ASSIGNMENT
+    ET = 0;
+    for (int i = 0; i < num_bodies; i++)
+    {
+        energies[i] = energy(masses[i], i, num_bodies, x_veloc[i], y_veloc[i], z_veloc[i], masses, radii);
+        ET += energies[i];
 
-    vx1 = vx10;
-    vy1 = vy10;
-    vz1 = vz10;
+        fprintf(write_E[i], "%Lf\n", energies[i]);
+        fclose(write_E[i]);
+    }
+        
+    fprintf(ETFILE, "%Lf\n", ET);
+    fprintf(timeFILE, "%Lf\n", time);   
+    fclose(ETFILE);
+    fclose(timeFILE);    
 
-    vx2 = vx20;
-    vy2 = vy20;
-    vz2 = vz20;
+    //HALF, HALFH, HALFD ARRAY INTIALIZATION FOR ADAPTIVE TIME-STEPPING 
+    double x_half_pos[num_bodies];
+    double y_half_pos[num_bodies];
+    double z_half_pos[num_bodies];
 
-    vx3 = vx30;
-    vy3 = vy30;
-    vz3 = vz30;
+    double x_halfH_pos[num_bodies];
+    double y_halfH_pos[num_bodies];
+    double z_halfH_pos[num_bodies];
 
-    E1 = Energy(m1, m2, m3, vx1, vy1, vz1, r12, r13);  
-    E2 = Energy(m2, m1, m3, vx2, vy2, vz2, r12, r23);
-    E3 = Energy(m3, m1, m2, vx3, vy3, vz3, r13, r23);
-    ET = E1 + E2 + E3;
-
-    time = 0;
-
-    fprintf(x1FILE, "%lf\n", x1);
-    fprintf(y1FILE, "%lf\n", y1);
-    fprintf(z1FILE, "%lf\n", z1);
-
-    fprintf(x2FILE, "%lf\n", x2);
-    fprintf(y2FILE, "%lf\n", y2);
-    fprintf(z2FILE, "%llf\n", z2);
-
-    fprintf(x3FILE, "%lf\n", x3);
-    fprintf(y3FILE, "%lf\n", y3);
-    fprintf(z3FILE, "%lf\n", z3);
-
-    fprintf(E1FILE, "%lf\n", E1);
-    fprintf(E2FILE, "%lf\n", E2);
-    fprintf(E3FILE, "%lf\n", E3);
-    fprintf(ETFILE, "%lf\n", ET);
-
-    fprintf(timeFILE, "%lf\n", time);
-
-    int i = 0;
-    double totalTime = 10;
-    double dt = 0.00001;  //initial time step
-    double minLim = 0.0000000000005;  //lower bound for distance traveled
-    double maxLim = 0.001;  //upper bound for distance traveled
-
-    double x1half, y1half, z1half;
-    double x2half, y2half, z2half; 
-    double x3half, y3half, z3half;
-    double x1halfH, y1halfH, z1halfH;
-    double x2halfH, y2halfH, z2halfH;
-    double x3halfH, y3halfH, z3halfH;
-    double x1halfD, y1halfD, z1halfD;
-    double x2halfD, y2halfD, z2halfD;
-    double x3halfD, y3halfD, z3halfD;
+    double x_halfD_pos[num_bodies];
+    double y_halfD_pos[num_bodies];
+    double z_halfD_pos[num_bodies];
     
+    double radii_half[num_radii];
+
+    int loop_count = 1; 
+
+    int adp_Time;
+
+    //MAIN INTEGRATION LOOP
     do
     {   
-        r12 = radius(x1, y1, z1, x2, y2, z2);
-        r23 = radius(x2, y2, z2, x3, y3, z3);
-        r13 = radius(x1, y1, z1, x3, y3, z3);
+        loop_count++;
 
-        x1half = vx1 * (dt / 2.00) + x1;
-        y1half = vy1 * (dt / 2.00) + y1;
-        z1half = vz1 * (dt / 2.00) + z1;
-
-        x2half = vx2 * (dt / 2.00) + x2;
-        y2half = vy2 * (dt / 2.00) + y2;
-        z2half = vz2 * (dt / 2.00) + z2;
-
-        x3half = vx3 * (dt / 2.00) + x3;
-        y3half = vy3 * (dt / 2.00) + y3;
-        z3half = vz3 * (dt / 2.00) + z3;
-
-        x1halfH = vx1 * (dt / 4.00) + x1;
-        y1halfH = vy1 * (dt / 4.00) + y1;
-        z1halfH = vz1 * (dt / 4.00) + z1;
-
-        x2halfH = vx2 * (dt / 4.00) + x2;
-        y2halfH = vy2 * (dt / 4.00) + y2;
-        z2halfH = vz2 * (dt / 4.00) + z2;
-
-        x3halfH = vx3 * (dt / 4.00) + x3;
-        y3halfH = vy3 * (dt / 4.00) + y3;
-        z3halfH = vz3 * (dt / 4.00) + z3;
-
-        x1halfD = vx1 * (dt) + x1;
-        y1halfD = vy1 * (dt) + y1;
-        z1halfD = vz1 * (dt) + z1;
-
-        x2halfD = vx2 * (dt) + x2;
-        y2halfD = vy2 * (dt) + y2;
-        z2halfD = vz2 * (dt) + z2;
-
-        x3halfD = vx3 * (dt) + x3;
-        y3halfD = vy3 * (dt) + y3;
-        z3halfD = vz3 * (dt) + z3;
-
-
-        // ADAPTIVE TIME STEPPING
-        //////////////////////////////////////////////////////////////////////////////////////
-        while (fabs((x1halfH - x1half)) > maxLim || fabs((x2halfH - x2half)) > maxLim
-               || fabs((x3halfH - x3half)) > maxLim || fabs((y1halfH - y1half)) > maxLim
-               || fabs((y2halfH - y2half)) > maxLim || fabs((y3halfH - y3half)) > maxLim
-               || fabs((z1halfH - z1half)) > maxLim || fabs((z2halfH - z2half)) > maxLim
-               || fabs((z3halfH - z3half)) > maxLim)
+        //HALF, HALFH, HALFD COMPUTATION
+        for (int k = 0; k < num_bodies; k++)
         {
-        
-            if (dt < .000005){
+            x_half_pos[k] = x_veloc[k] * (dt/2.00) + x_pos[k];
+            y_half_pos[k] = y_veloc[k] * (dt/2.00) + y_pos[k];
+            z_half_pos[k] = z_veloc[k] * (dt/2.00) + z_pos[k];
+
+            x_halfH_pos[k] = x_veloc[k] * (dt/4.00) + x_pos[k];
+            y_halfH_pos[k] = y_veloc[k] * (dt/4.00) + y_pos[k];
+            z_halfH_pos[k] = z_veloc[k] * (dt/4.00) + z_pos[k]; 
+
+            x_halfD_pos[k] = x_veloc[k] * (dt) + x_pos[k];
+            y_halfD_pos[k] = y_veloc[k] * (dt) + y_pos[k];
+            z_halfD_pos[k] = z_veloc[k] * (dt) + z_pos[k]; 
+        }  
+
+        //ADAPTIVE TIME STEPPING MAX LIM CALCULATION
+        adp_Time = exceedLim(x_halfH_pos, y_halfH_pos, z_halfH_pos, x_half_pos, y_half_pos, z_half_pos, num_bodies, max_lim, 1);
+        while (adp_Time == 1)
+        {
+            if (dt < .000005)
+            {
                 break;
             }
             
             dt = dt / 2.00;
            
-            x1half = vx1 * (dt / 2.00) + x1;
-            y1half = vy1 * (dt / 2.00) + y1;
-            z1half = vz1 * (dt / 2.00) + z1;
+            for (int l = 0; l < num_bodies; l++)
+            {
+                x_half_pos[l] = x_veloc[l] * (dt/2.00) + x_pos[l];
+                y_half_pos[l] = y_veloc[l] * (dt/2.00) + y_pos[l];
+                z_half_pos[l] = z_veloc[l] * (dt/2.00) + z_pos[l];
 
-            x2half = vx2 * (dt / 2.00) + x2;
-            y2half = vy2 * (dt / 2.00) + y2;
-            z2half = vz2 * (dt / 2.00) + z2;
-
-            x3half = vx3 * (dt / 2.00) + x3;
-            y3half = vy3 * (dt / 2.00) + y3;
-            z3half = vz3 * (dt / 2.00) + z3;
-            
-            x1halfH = vx1 * (dt / 4.00) + x1;
-            y1halfH = vy1 * (dt / 4.00) + y1;
-            z1halfH = vz1 * (dt / 4.00) + z1;
-
-            x2halfH = vx2 * (dt / 4.00) + x2;
-            y2halfH = vy2 * (dt / 4.00) + y2;
-            z2halfH = vz2 * (dt / 4.00) + z2;
-
-            x3halfH = vx3 * (dt / 4.00) + x3;
-            y3halfH = vy3 * (dt / 4.00) + y3;
-            z3halfH = vz3 * (dt / 4.00) + z3;
-
-
+                x_halfH_pos[l] = x_veloc[l] * (dt/4.00) + x_pos[l];
+                y_halfH_pos[l] = y_veloc[l] * (dt/4.00) + y_pos[l];
+                z_halfH_pos[l] = z_veloc[l] * (dt/4.00) + z_pos[l]; 
+            }
+            adp_Time = exceedLim(x_halfH_pos, y_halfH_pos, z_halfH_pos, x_half_pos, y_half_pos, z_half_pos, num_bodies, max_lim, 1);
         }
         
-        
-        while (fabs((x1halfD - x1half)) < minLim && fabs((x2halfD - x2half)) < minLim
-               && fabs((x3halfD - x3half)) < minLim && fabs((y1halfD - y1half)) < minLim
-               && fabs((y2halfD - y2half)) < minLim && fabs((y3halfD - y3half)) < minLim
-               && fabs((z1halfD - z1half)) < minLim && fabs((z2halfD - z2half)) < minLim
-               && fabs((z3halfD - z3half)) < minLim) 
+        //ADAPTIVE TIME STEPPING MIN LIM CALCULATION
+        adp_Time = exceedLim(x_halfD_pos, y_halfD_pos, z_halfD_pos, x_half_pos, y_half_pos, z_half_pos, num_bodies, min_lim, 0);
+        while (adp_Time == 1)
         {
-
-            if (dt > 0.5) {
+            if (dt > 0.5)
+            {
                 break;
             }
 
             dt = 2 * dt;
 
-            x1half = vx1 * (dt / 2.00) + x1;
-            y1half = vy1 * (dt / 2.00) + y1;
-            z1half = vz1 * (dt / 2.00) + z1;
+            for (int m = 0; m < num_bodies; m++)
+            {
+                x_half_pos[m] = x_veloc[m] * (dt/2.00) + x_pos[m];
+                y_half_pos[m] = y_veloc[m] * (dt/2.00) + y_pos[m];
+                z_half_pos[m] = z_veloc[m] * (dt/2.00) + z_pos[m];
 
-            x2half = vx2 * (dt / 2.00) + x2;
-            y2half = vy2 * (dt / 2.00) + y2;
-            z2half = vz2 * (dt / 2.00) + z2;
-
-            x3half = vx3 * (dt / 2.00) + x3;
-            y3half = vy3 * (dt / 2.00) + y3;
-            z3half = vz3 * (dt / 2.00) + z3;
-
-            x1halfD = vx1 * (dt) + x1;
-            y1halfD = vy1 * (dt) + y1;
-            z1halfD = vz1 * (dt) + z1;
-
-            x2halfD = vx2 * (dt) + x2;
-            y2halfD = vy2 * (dt) + y2;
-            z2halfD = vz2 * (dt) + z2;
-
-            x3halfD = vx3 * (dt) + x3;
-            y3halfD = vy3 * (dt) + y3;
-            z3halfD = vz3 * (dt) + z3;
-
-
+                x_halfD_pos[m] = x_veloc[m] * (dt) + x_pos[m];
+                y_halfD_pos[m] = y_veloc[m] * (dt) + y_pos[m];
+                z_halfD_pos[m] = z_veloc[m] * (dt) + z_pos[m]; 
+            }
+            adp_Time = exceedLim(x_halfD_pos, y_halfD_pos, z_halfD_pos, x_half_pos, y_half_pos, z_half_pos, num_bodies, max_lim, 0);
         }
-        //////////////////////////////////////////////////////////////////////////////////////
 
-        //LEAPFROG ALGORITHIM COMPUTATION
-        double rhalf12 = radius(x1half, y1half, z1half, x2half, y2half, z2half);
-        double rhalf23 = radius(x2half, y2half, z2half, x3half, y3half, z3half);
-        double rhalf13 = radius(x1half, y1half, z1half, x3half, y3half, z3half);
-
-        vx1 = vx1 + dt * Force(m1, m2, m3, rhalf12, rhalf13, x1half, x2half, x3half) / m1;
-        vx2 = vx2 + dt * Force(m2, m1, m3, rhalf12, rhalf23, x2half, x1half, x3half) / m2;
-        vx3 = vx3 + dt * Force(m3, m1, m2, rhalf13, rhalf23, x3half, x1half, x2half) / m3;
-
-        vy1 = vy1 + dt * Force(m1, m2, m3, rhalf12, rhalf13, y1half, y2half, y3half) / m1;
-        vy2 = vy2 + dt * Force(m2, m1, m3, rhalf12, rhalf23, y2half, y1half, y3half) / m2;
-        vy3 = vy3 + dt * Force(m3, m1, m2, rhalf13, rhalf23, y3half, y1half, y2half) / m3;
-
-        vz1 = vz1 + dt * Force(m1, m2, m3, rhalf12, rhalf13, z1half, z2half, z3half) / m1;
-        vz2 = vz2 + dt * Force(m2, m1, m3, rhalf12, rhalf23, z2half, z1half, z3half) / m2;
-        vz3 = vz3 + dt * Force(m3, m1, m2, rhalf13, rhalf23, z3half, z1half, z2half) / m3;
-
-        x1 = x1half + dt / 2.00 * vx1;
-        y1 = y1half + dt / 2.00 * vy1;
-        z1 = z1half + dt / 2.00 * vz1;
-
-        x2 = x2half + dt / 2.00 * vx2;
-        y2 = y2half + dt / 2.00 * vy2;
-        z2 = z2half + dt / 2.00 * vz2;
-
-        x3 = x3half + dt / 2.00 * vx3;
-        y3 = y3half + dt / 2.00 * vy3;
-        z3 = z3half + dt / 2.00 * vz3;
-
-        r12 = radius(x1, y1, z1, x2, y2, z2);
-        r23 = radius(x2, y2, z2, x3, y3, z3);
-        r13 = radius(x1, y1, z1, x3, y3, z3);
+        //RADII HALF LOOP COMPUTATION
+        starter = 1;
+        for (int n = 0; n < num_bodies; n++) 
+        {
         
-        E1 = Energy(m1, m2, m3, vx1, vy1, vz1, r12, r13);
-        E2 = Energy(m2, m1, m3, vx2, vy2, vz2, r12, r23);
-        E3 = Energy(m3, m1, m2, vx3, vy3, vz3, r13, r23);
-        ET = E1 + E2 + E3;
+            for (int o = starter; o < num_bodies; o++) 
+            {
+                radii_half[count] = radius(x_half_pos[n], y_half_pos[n], z_half_pos[n], x_half_pos[o], y_half_pos[o], z_half_pos[o]);
+                count++;
+            }
+            starter++;
+        }
+        count = 0;
 
-        //TEXT FILE APPENDING
-        fprintf(x1FILEA, "%lf\n", x1);
-        fprintf(y1FILEA, "%lf\n", y1);
-        fprintf(z1FILEA, "%lf\n", z1);
+        //LEAPFROG VELOCITY+POSITION COMPUTATION
+        for (int p = 0; p < num_bodies; p++)
+        {
+            x_veloc[p] = x_veloc[p] + dt * force(masses[p], p, num_bodies, radii_half, masses, x_half_pos)/masses[p];
+            y_veloc[p] = y_veloc[p] + dt * force(masses[p], p, num_bodies, radii_half, masses, y_half_pos)/masses[p];
+            z_veloc[p] = z_veloc[p] + dt * force(masses[p], p, num_bodies, radii_half, masses, z_half_pos)/masses[p];
 
-        fprintf(x2FILEA, "%lf\n", x2);
-        fprintf(y2FILEA, "%lf\n", y2);
-        fprintf(z2FILEA, "%lf\n", z2);
+            x_pos[p] = x_half_pos[p] + (dt / 2.00) * x_veloc[p];
+            y_pos[p] = y_half_pos[p] + (dt / 2.00) * y_veloc[p];
+            z_pos[p] = z_half_pos[p] + (dt / 2.00) * z_veloc[p];
 
-        fprintf(x3FILEA, "%lf\n", x3);
-        fprintf(y3FILEA, "%lf\n", y3);
-        fprintf(z3FILEA, "%lf\n", z3);
+            if (loop_count % skip_save == 0)
+            {
+                fprintf(append_x[p], "%Lf\n", x_pos[p]);
+                fprintf(append_y[p], "%Lf\n", y_pos[p]);
+                fprintf(append_z[p], "%Lf\n", z_pos[p]);                
+            }
+        }
+        
+        //RADII COMPUTATION
+        starter = 1;
+        for (int q = 0; q < num_bodies; q++) 
+        {
+            for (int r = starter; r < num_bodies; r++) 
+            {
+                radii[count] = radius(x_pos[q], y_pos[q], z_pos[q], x_pos[r], y_pos[r], z_pos[r]);
+                count++;
+            }
+            starter++;
+        }
+        count = 0;
 
-        fprintf(E1FILEA, "%lf\n", E1);
-        fprintf(E2FILEA, "%lf\n", E2);
-        fprintf(E3FILEA, "%lf\n", E3);
-        fprintf(ETFILEA, "%lf\n", ET);     
+        //ENERGY COMPUTATION
+        ET = 0;
+        for (int s = 0; s < num_bodies; s++)
+        {
+            energies[s] = energy(masses[s], s, num_bodies, x_veloc[s], y_veloc[s], z_veloc[s], masses, radii);
+            ET += energies[s];        
+            
+            if (loop_count % skip_save == 0) 
+            {
+                fprintf(append_E[s], "%Lf\n", energies[s]);
+            }
+        }
 
-        fprintf(timeFILEA,"%lf\n", time);
-
-        time += dt; //Time Increment   
-
+        if (loop_count % skip_save == 0)
+        {
+            fprintf(ETFILEA, "%Lf\n", ET);     
+            fprintf(timeFILEA,"%Lf\n", time);
+        }
+        
+        time += dt; 
     }
-    while (time < totalTime);
+    while (time < time_elapsed); 
 
-    //FILE CLOSING
-    fclose(x1FILE);
-    fclose(y1FILE);
-    fclose(z1FILE);
-    
-    fclose(x2FILE);
-    fclose(y2FILE);
-    fclose(z2FILE);
-    
-    fclose(x3FILE);
-    fclose(y3FILE);
-    fclose(z3FILE);
-        
-    fclose(E1FILE);
-    fclose(E2FILE);
-    fclose(E3FILE);
-    fclose(ETFILE);
+    //FILE POINTER CLOSER
+    for (int ww = 0; ww < num_bodies; ww++)
+    {
+        fclose(append_x[ww]); 
+        fclose(append_y[ww]);
+        fclose(append_z[ww]);
 
-    fclose(timeFILE);
+        fclose(append_E[ww]);
+    }
 
-    fclose(x1FILEA);
-    fclose(y1FILEA);
-    fclose(z1FILEA);
-    
-    fclose(x2FILEA);
-    fclose(y2FILEA);
-    fclose(z2FILEA);
-    
-    fclose(x3FILEA);
-    fclose(y3FILEA);
-    fclose(z3FILEA);
-    
-    fclose(E1FILEA);
-    fclose(E2FILEA);
-    fclose(E3FILEA);
     fclose(ETFILEA);
-       
-    fclose(timeFILEA);   
+    fclose(timeFILEA);
 
     return 1; 
 }
 
-int main() {
+int main() 
+{
+
     printf("Integration Code (C) Initiation: Success\n\n");
 
-    //BODY 1 PARAMETERS
-    double m1 = 1;
-    double x10 = -1;
-    double y10 = 1.0;
-    double z10 = 0;    
-    double vx10 = 0;
-    double vy10 = -.1;
-    double vz10 = 0;
-   
-    //BODY 2 PARAMETERS
-    double m2 = 1;
-    double x20 = 1;
-    double y20 = 0;
-    double z20 = 0;
-    double vx20 = 0;
-    double vy20 = .1;
-    double vz20 = 0;
+    double time_elapsed = .39;         //total time passed during simulation
+    double dt = 0.00001;               //initial time step
+    double min_lim = 0.0000000000005;  //lower bound for distance traveled
+    double max_lim = 0.001;            //upper bound for distance traveled
+    int num_bodies = 5;               //number of bodies in the system
+    int skip_save = 1;                //the number of loops that need to pass before saving to a txt file
 
-    //BODY 3 PARAMETERS
-    double m3 = .000001;
-    double x30 = 0;
-    double y30 = 0;
-    double z30 = 0;
-    double vx30 = 0;
-    double vy30 = 0;
-    double vz30 = 0;
+    int max_file = 8000;               //maximum number of files that can be open at once
+    double sigma = 2.0;
+    double Mi = 4.0;
 
-    integrate(m1, m2, m3, x10, y10, z10, vx10, vy10, vz10, x20, y20, z20, vx20, vy20, vz20, x30, y30, z30, vx30, vy30, vz30);
+    double masses[num_bodies];
+    
+    double init_x_pos[num_bodies];
+    double init_y_pos[num_bodies];
+    double init_z_pos[num_bodies];
+    
+    double init_x_veloc[num_bodies];
+    double init_y_veloc[num_bodies];
+    double init_z_veloc[num_bodies];
+    
+    double v, theta, phi, r;
+
+    //RANDOM PARAMETER ASSIGNMENT TO EACH BODY IN SYSTEM
+    for (int counter = 0; counter < num_bodies; counter++)
+    {
+        v = drand(0,1);
+        theta = drand(0, 2*PI);
+        phi = acos((2*v)-1);
+        r = pow(drand(0,1), 1/3);
+
+        masses[counter] = 1;//normalRandom()*sigma+Mi;//returnRandoms(1, 50);
+       
+        init_x_pos[counter] = r * sin(phi) * cos(theta);//getPoint(0)*5;//cos(theta) * sqrt(1 - u*u); //normalRandom()*sigma+Mi;//returnRandoms(1, 50);
+        init_y_pos[counter] = r * sin(phi) * sin(theta);//getPoint(1)*5;//sin(theta) * sqrt(1 - u*u);//normalRandom()*sigma+Mi;//returnRandoms(1, 50);
+        init_z_pos[counter] = r * cos(phi); //getPoint(2)*5;//u;//normalRandom()*sigma+Mi;//returnRandoms(1, 50);
+       
+        init_x_veloc[counter] = drand(-.1,.1);//normalRandom()*sigma+Mi;//returnRandoms(1, 50);
+        init_y_veloc[counter] = drand(-.1,.1);//normalRandom()*sigma+Mi;//returnRandoms(1, 50);
+        init_z_veloc[counter] = drand(-.1,.1);//normalRandom()*sigma+Mi;//returnRandoms(1, 50);
+    }
+
+    _setmaxstdio(max_file);
+
+    integrate(time_elapsed, dt, num_bodies, min_lim, max_lim, skip_save, masses, init_x_pos, init_y_pos, init_z_pos, init_x_veloc, init_y_veloc, init_z_veloc);
     
     printf("Integration Code (C) Termination: Success\n\n");
     
-    return 0;
+    return 1;
 }
-
-
-
-
-
-
-
