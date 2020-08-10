@@ -5,9 +5,13 @@ from pylab import *
 from mpl_toolkits import mplot3d
 import subprocess
 
-num_bodies = 8
+num_bodies = 3
+
+subprocess.call(["gcc", "-lm", "Ghost-Body-Energy.c"]) ##compiles C code (integration)
 
 print("Integration Code (C) Compilation: Success\n");
+
+tmp=subprocess.call("./c.exe") ##initates code execution
 
 print("Graphing Code (Python) Initiation: Success\n")
 
@@ -55,45 +59,45 @@ tight_layout()
 ylabel("Energy (J)")
 xlabel("Time (Sec)")
 
-figure()
-for n in range(1,num_bodies+1):
-    KE_string = "KE" + str(n) + ".txt" 
-    with open(KE_string) as f:
-        KE_array = [double(a) for a in f]
-        plot(time, KE_array)
+# figure()
+# for n in range(1,num_bodies+1):
+#     KE_string = "KE" + str(n) + ".txt" 
+#     with open(KE_string) as f:
+#         KE_array = [double(a) for a in f]
+#         plot(time, KE_array)
 
 
 
-tight_layout()
-ylabel("Kinetic Energy (J)")
-xlabel("Time (Sec)")
+# tight_layout()
+# ylabel("Kinetic Energy (J)")
+# xlabel("Time (Sec)")
 
 
 
-figure()
-for n in range(1,num_bodies+1):
-    PE_string = "PE" + str(n) + ".txt" 
-    with open(PE_string) as f:
-        PE_array = [double(a) for a in f]
-        plot(time, PE_array)
+# figure()
+# for n in range(1,num_bodies+1):
+#     PE_string = "PE" + str(n) + ".txt" 
+#     with open(PE_string) as f:
+#         PE_array = [double(a) for a in f]
+#         plot(time, PE_array)
 
-tight_layout()
-ylabel("Potential Energy (J)")
-xlabel("Time (Sec)")
+# tight_layout()
+# ylabel("Potential Energy (J)")
+# xlabel("Time (Sec)")
 
 
 
 figure()
 with open("ET.txt") as f:
     ET = [double(d) for d in f]
-with open("KET.txt") as f:
-    KET = [double(d) for d in f]
-with open("PET.txt") as f:
-    PET = [double(d) for d in f]
+# with open("KET.txt") as f:
+#     KET = [double(d) for d in f]
+# with open("PET.txt") as f:
+#     PET = [double(d) for d in f]
 
-plot(time, ET, color="purple")
-plot(time, KET)
-plot(time, PET)
+plot(time, ET)
+##plot(time, KET)
+##plot(time, PET)
 
 tight_layout()
 ylabel("Total Energy (J)")
